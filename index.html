@@ -14,7 +14,7 @@
     <style>
         :root { 
             --primary: #222; 
-            --accent: #f39c12; /* Gold accent for the $ look */
+            --accent: #f39c12; 
             --dark: #000; 
             --bg: #1a1a1a; 
             --card-bg: #2a2a2a;
@@ -23,7 +23,6 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
         .container { max-width: 800px; margin: auto; }
         
-        /* Glassmorphism Header */
         header { 
             text-align: center; 
             padding: 20px; 
@@ -42,7 +41,6 @@
         .tab-btn.active { background: var(--accent); color: black; font-weight: bold; border-color: var(--accent); }
 
         .card { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #333; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         
         input { 
             background: #111; border: 1px solid #444; color: white; padding: 10px; 
@@ -83,34 +81,30 @@
     <div class="tabs" id="monthTabs"></div>
 
     <div id="appBody">
-        <div class="grid">
-            <section class="card">
-                <h3 style="margin-top:0">Income</h3>
+        <!-- Income Section (Full Width) -->
+        <section class="card">
+            <h3 style="margin-top:0">Income</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                 <input type="number" id="pc1" oninput="updateCalculations()" placeholder="Paycheck 1">
                 <input type="number" id="pc2" oninput="updateCalculations()" placeholder="Paycheck 2">
-                <input type="number" id="otherInc" oninput="updateCalculations()" placeholder="Other Income">
-                <div class="total-box">Total: $<span id="totalIncome">0.00</span></div>
-            </section>
+                <input type="number" id="otherInc" oninput="updateCalculations()" placeholder="Other">
+            </div>
+            <div class="total-box">Total Monthly Income: $<span id="totalIncome">0.00</span></div>
+        </section>
 
-            <section class="card">
-                <h3 style="margin-top:0">Savings</h3>
-                <input type="number" id="savings" oninput="updateCalculations()" placeholder="Cumulative Savings">
-                <p style="font-size: 0.7em; color: #777; margin-top: 25px;">*Tracked separately from balance.</p>
-            </section>
-        </div>
-
+        <!-- Expense Sections -->
         <div id="expenseSections"></div>
 
+        <!-- Footer Summary (Cleaned Up) -->
         <div class="footer-summary">
             <div style="display:grid; grid-template-columns: 1fr 1fr;">
-                <div style="font-size: 0.8em; line-height: 1.6;">
-                    INCOME: $<span id="sumInc">0.00</span><br>
-                    OUTGOING: $<span id="sumOut">0.00</span><br>
-                    SAVINGS: $<span id="sumSav">0.00</span>
+                <div>
+                    <span style="font-size: 0.7em; color: var(--accent);">MONTHLY INCOME</span>
+                    <div style="font-size: 1.2em; font-weight: bold;">$<span id="sumInc">0.00</span></div>
                 </div>
                 <div style="text-align: right;">
-                    <span style="font-size: 0.7em; color: var(--accent);">REMAINING BALANCE</span>
-                    <h2 style="margin: 0; color: white;">$<span id="sumBal">0.00</span></h2>
+                    <span style="font-size: 0.7em; color: #ff4444;">TOTAL OUTGOING</span>
+                    <div style="font-size: 1.2em; font-weight: bold;">$<span id="sumOut">0.00</span></div>
                 </div>
             </div>
         </div>
@@ -137,13 +131,12 @@
     function loadMonth(idx) {
         currentMonth = idx;
         renderTabs();
-        if(!db[idx]) db[idx] = { pc1:0, pc2:0, otherInc:0, savings:0, expenses: {} };
+        if(!db[idx]) db[idx] = { pc1:0, pc2:0, otherInc:0, expenses: {} };
         categories.forEach(cat => { if(!db[idx].expenses[cat]) db[idx].expenses[cat] = []; });
 
         document.getElementById('pc1').value = db[idx].pc1 || '';
         document.getElementById('pc2').value = db[idx].pc2 || '';
         document.getElementById('otherInc').value = db[idx].otherInc || '';
-        document.getElementById('savings').value = db[idx].savings || '';
 
         renderExpenses();
         updateCalculations();
@@ -152,9 +145,7 @@
     function renderExpenses() {
         document.getElementById('expenseSections').innerHTML = categories.map(cat => `
             <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center">
-                    <h3 style="margin:0; font-size: 1rem;">${cat}</h3>
-                </div>
+                <h3 style="margin:0; font-size: 1rem;">${cat}</h3>
                 <div id="list-${cat}">
                     ${db[currentMonth].expenses[cat].map((exp, i) => `
                         <div class="purchase-row">
@@ -165,7 +156,7 @@
                     `).join('')}
                 </div>
                 <button class="btn-add" onclick="addPurchase('${cat}')">+ ADD TO ${cat.toUpperCase()}</button>
-                <div class="total-box">Total: $<span id="total-${cat}">0.00</span></div>
+                <div class="total-box">Section Total: $<span id="total-${cat}">0.00</span></div>
             </div>
         `).join('');
     }
@@ -175,9 +166,9 @@
         m.pc1 = parseFloat(document.getElementById('pc1').value) || 0;
         m.pc2 = parseFloat(document.getElementById('pc2').value) || 0;
         m.otherInc = parseFloat(document.getElementById('otherInc').value) || 0;
+        
         const totalInc = m.pc1 + m.pc2 + m.otherInc;
         document.getElementById('totalIncome').innerText = totalInc.toFixed(2);
-        m.savings = parseFloat(document.getElementById('savings').value) || 0;
 
         let totalOut = 0;
         categories.forEach(cat => {
@@ -188,8 +179,6 @@
 
         document.getElementById('sumInc').innerText = totalInc.toFixed(2);
         document.getElementById('sumOut').innerText = totalOut.toFixed(2);
-        document.getElementById('sumSav').innerText = m.savings.toFixed(2);
-        document.getElementById('sumBal').innerText = (totalInc - totalOut).toFixed(2);
         saveToLocal();
     }
 
