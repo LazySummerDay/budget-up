@@ -20,7 +20,7 @@
             --card-bg: #2a2a2a;
             --text: #eee;
         }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 120px; }
         .container { max-width: 800px; margin: auto; }
         
         header { 
@@ -33,12 +33,16 @@
             border: 1px solid #444;
         }
 
-        .tabs { display: flex; overflow-x: auto; gap: 8px; margin-bottom: 20px; padding-bottom: 10px; scrollbar-width: none; }
+        .tabs-container { margin-bottom: 20px; }
+        .year-tabs { display: flex; overflow-x: auto; gap: 8px; margin-bottom: 10px; padding-bottom: 5px; scrollbar-width: none; }
+        .month-tabs { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 5px; scrollbar-width: none; }
+        
         .tab-btn { 
             padding: 8px 15px; border: 1px solid #444; background: #333; 
             color: #aaa; cursor: pointer; border-radius: 20px; white-space: nowrap; 
         }
         .tab-btn.active { background: var(--accent); color: black; font-weight: bold; border-color: var(--accent); }
+        .tab-btn-add { background: transparent; border: 1px dashed var(--accent); color: var(--accent); }
 
         .card { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #333; }
         
@@ -50,17 +54,24 @@
 
         .purchase-row { display: grid; grid-template-columns: 1fr 80px 40px; gap: 8px; margin-top: 10px; align-items: center; }
         .btn-add { background: transparent; color: var(--accent); border: 1px dashed var(--accent); padding: 8px; width: 100%; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+        .btn-action { background: #333; color: white; border: 1px solid #555; padding: 10px 15px; border-radius: 6px; cursor: pointer; }
         
         .total-box { font-size: 0.9em; color: var(--accent); margin-top: 12px; text-align: right; border-top: 1px solid #444; padding-top: 5px; }
         
         .footer-summary { 
-            position: sticky; bottom: 10px; background: rgba(0,0,0,0.9); 
-            backdrop-filter: blur(10px); padding: 20px; border-radius: 15px; 
-            border: 1px solid var(--accent); margin-top: 30px;
+            position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.95); 
+            backdrop-filter: blur(10px); padding: 15px 20px; border-top: 1px solid var(--accent); z-index: 1000;
         }
+        .footer-inner { max-width: 800px; margin: auto; display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; }
         
         .security-bar { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.7em; }
-        .security-bar button { background: #333; color: white; border: none; padding: 5px 10px; border-radius: 4px; }
+        .security-bar button { background: #333; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .chart-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .pie-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; justify-content: center; }
+        .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.85em; }
+        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
     </style>
 </head>
 <body>
@@ -78,124 +89,396 @@
         </div>
     </div>
 
-    <div class="tabs" id="monthTabs"></div>
+    <!-- Year & Month Tabs -->
+    <div class="tabs-container">
+        <div class="year-tabs" id="yearTabs"></div>
+        <div class="month-tabs" id="monthTabs"></div>
+    </div>
 
     <div id="appBody">
-        <!-- Income Section (Full Width) -->
-        <section class="card">
-            <h3 style="margin-top:0">Income</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                <input type="number" id="pc1" oninput="updateCalculations()" placeholder="Paycheck 1">
-                <input type="number" id="pc2" oninput="updateCalculations()" placeholder="Paycheck 2">
-                <input type="number" id="otherInc" oninput="updateCalculations()" placeholder="Other">
-            </div>
-            <div class="total-box">Total Monthly Income: $<span id="totalIncome">0.00</span></div>
-        </section>
+        <!-- Main Tab Content Area -->
+        <div id="tabContentArea"></div>
+    </div>
+</div>
 
-        <!-- Expense Sections -->
-        <div id="expenseSections"></div>
-
-        <!-- Footer Summary (Cleaned Up) -->
-        <div class="footer-summary">
-            <div style="display:grid; grid-template-columns: 1fr 1fr;">
-                <div>
-                    <span style="font-size: 0.7em; color: var(--accent);">MONTHLY INCOME</span>
-                    <div style="font-size: 1.2em; font-weight: bold;">$<span id="sumInc">0.00</span></div>
-                </div>
-                <div style="text-align: right;">
-                    <span style="font-size: 0.7em; color: #ff4444;">TOTAL OUTGOING</span>
-                    <div style="font-size: 1.2em; font-weight: bold;">$<span id="sumOut">0.00</span></div>
-                </div>
-            </div>
+<!-- Footer Summary -->
+<div class="footer-summary">
+    <div class="footer-inner">
+        <div>
+            <span style="font-size: 0.7em; color: var(--accent);">TOTAL BALANCE</span>
+            <div style="font-size: 1.1em; font-weight: bold;">$<span id="sumBal">0.00</span></div>
+        </div>
+        <div>
+            <span style="font-size: 0.7em; color: #2ecc71;">MONTHLY INCOME</span>
+            <div style="font-size: 1.1em; font-weight: bold;">$<span id="sumInc">0.00</span></div>
+        </div>
+        <div>
+            <span style="font-size: 0.7em; color: #ff4444;">TOTAL OUTGOING</span>
+            <div style="font-size: 1.1em; font-weight: bold;">$<span id="sumOut">0.00</span></div>
         </div>
     </div>
 </div>
 
 <script>
-    let currentMonth = new Date().getMonth();
-    const categories = ['Recurring', 'Household', 'Vehicle', 'Phone', 'Health & Beauty', 'Other'];
-    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-    let db = JSON.parse(localStorage.getItem('budgetUpData')) || {};
+    const defaultCategories = ['Recurring', 'Household', 'Vehicle', 'Phone', 'Health & Beauty', 'Other'];
+    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC", "EXPENSE CHART"];
+    const chartColors = ['#f39c12', '#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#1abc9c', '#e67e22', '#34495e', '#d35400', '#16a085'];
+
+    let db = JSON.parse(localStorage.getItem('budgetUpData')) || { years: { "2026": {} }, currentYear: "2026", currentMonth: 0 };
+    if (!db.years) db.years = { "2026": {} };
+    if (!db.currentYear) db.currentYear = "2026";
+    if (db.currentMonth === undefined) db.currentMonth = 0;
 
     function init() {
-        renderTabs();
-        loadMonth(currentMonth);
+        renderNavigation();
+        loadActiveTab();
     }
 
-    function renderTabs() {
+    function renderNavigation() {
+        // Render Year Tabs
+        const years = Object.keys(db.years).sort();
+        let yearHtml = years.map(yr => 
+            `<button class="tab-btn ${yr === db.currentYear ? 'active' : ''}" onclick="switchYear('${yr}')">${yr}</button>`
+        ).join('');
+        yearHtml += `<button class="tab-btn tab-btn-add" onclick="addYear()">+ Year</button>`;
+        document.getElementById('yearTabs').innerHTML = yearHtml;
+
+        // Render Month Tabs for current year (+ 13th Chart tab)
         document.getElementById('monthTabs').innerHTML = months.map((m, i) => 
-            `<button class="tab-btn ${i === currentMonth ? 'active' : ''}" onclick="loadMonth(${i})">${m}</button>`
+            `<button class="tab-btn ${i === db.currentMonth ? 'active' : ''}" onclick="switchMonth(${i})">${m}</button>`
         ).join('');
     }
 
-    function loadMonth(idx) {
-        currentMonth = idx;
-        renderTabs();
-        if(!db[idx]) db[idx] = { pc1:0, pc2:0, otherInc:0, expenses: {} };
-        categories.forEach(cat => { if(!db[idx].expenses[cat]) db[idx].expenses[cat] = []; });
+    function switchYear(yr) {
+        db.currentYear = yr;
+        if (!db.years[yr]) db.years[yr] = {};
+        renderNavigation();
+        loadActiveTab();
+    }
 
-        document.getElementById('pc1').value = db[idx].pc1 || '';
-        document.getElementById('pc2').value = db[idx].pc2 || '';
-        document.getElementById('otherInc').value = db[idx].otherInc || '';
+    function switchMonth(idx) {
+        db.currentMonth = idx;
+        renderNavigation();
+        loadActiveTab();
+    }
 
-        renderExpenses();
+    function addYear() {
+        const years = Object.keys(db.years).map(Number);
+        const nextYear = (Math.max(...years, 2025) + 1).toString();
+        db.years[nextYear] = {};
+        switchYear(nextYear);
+    }
+
+    function ensureMonthData(yr, mIdx) {
+        if (!db.years[yr][mIdx]) {
+            db.years[yr][mIdx] = {
+                balance: 0,
+                incomeLog: [],
+                categories: [...defaultCategories],
+                expenses: {}
+            };
+            defaultCategories.forEach(cat => db.years[yr][mIdx].expenses[cat] = []);
+        }
+        // Ensure custom categories have arrays
+        db.years[yr][mIdx].categories.forEach(cat => {
+            if (!db.years[yr][mIdx].expenses[cat]) db.years[yr][mIdx].expenses[cat] = [];
+        });
+    }
+
+    function loadActiveTab() {
+        const yr = db.currentYear;
+        const mIdx = db.currentMonth;
+        ensureMonthData(yr, mIdx);
+
+        const area = document.getElementById('tabContentArea');
+
+        if (mIdx === 12) {
+            // Yearly Expense Chart (aggregates all months in the year)
+            area.innerHTML = renderYearlyChart(yr);
+        } else if (mIdx === 11 && db.years[yr][11] && db.years[yr][11].isChartTab) {
+            // Handled via monthly view below if configured, but we use index 0-11 for months and index 12 for yearly chart. 
+            // Wait, the user requested: "In each month tab add a second tab that says 'chart'." 
+            // Let's adapt monthly view so that indices 0-11 are regular months, and we can handle month sub-views or render month + chart toggle.
+        }
+
+        // Let's refine monthly view to include a sub-toggle for "Budget" vs "Chart" if needed, 
+        // or treat index 12 as the Yearly Expense Chart and handle monthly charts inside month view.
+        renderMonthView(yr, mIdx);
+    }
+
+    function renderMonthView(yr, mIdx) {
+        if (mIdx === 12) {
+            document.getElementById('tabContentArea').innerHTML = renderYearlyChart(yr);
+            updateFooterTotals();
+            return;
+        }
+
+        const mData = db.years[yr][mIdx];
+        
+        let html = `
+            <!-- Income Section -->
+            <section class="card">
+                <h3 style="margin-top:0">Income Stream</h3>
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px;">
+                    <input type="number" id="incomeInput" placeholder="Enter amount (e.g. 50.00)">
+                    <button class="btn-action" onclick="addIncome()">Add Income</button>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.85em; color: #aaa;">
+                    Logged Entries this month: <span id="incomeCount">${mData.incomeLog.length}</span>
+                </div>
+            </section>
+
+            <!-- View Toggle inside Month -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button class="tab-btn active" id="subBtnBudget" onclick="switchMonthSub('budget')">Budget Sheet</button>
+                <button class="tab-btn" id="subBtnChart" onclick="switchMonthSub('chart')">Month Chart</button>
+            </div>
+
+            <div id="monthSubContent"></div>
+        `;
+        document.getElementById('tabContentArea').innerHTML = html;
+        renderMonthSubContent();
+        updateFooterTotals();
+    }
+
+    let currentMonthSub = 'budget';
+    function switchMonthSub(sub) {
+        currentMonthSub = sub;
+        document.getElementById('subBtnBudget').classList.toggle('active', sub === 'budget');
+        document.getElementById('subBtnChart').classList.toggle('active', sub === 'chart');
+        renderMonthSubContent();
+    }
+
+    function renderMonthSubContent() {
+        const yr = db.currentYear;
+        const mIdx = db.currentMonth;
+        const mData = db.years[yr][mIdx];
+        const container = document.getElementById('monthSubContent');
+
+        if (currentMonthSub === 'chart') {
+            container.innerHTML = renderPieChartHTML(calculateMonthCategoryTotals(yr, mIdx), "Monthly Expense Distribution");
+            return;
+        }
+
+        // Budget Sheet View
+        let html = `
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+                <button class="btn-action" onclick="promptAddCategory()" style="font-size: 0.8em; padding: 6px 12px;">+ Add Expense Section</button>
+            </div>
+            <div id="expenseSections">
+        `;
+
+        mData.categories.forEach(cat => {
+            const items = mData.expenses[cat] || [];
+            html += `
+                <div class="card">
+                    <div class="section-header">
+                        <h3 style="margin:0; font-size: 1rem;">${cat}</h3>
+                        <button onclick="removeCategory('${cat}')" style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9em;" title="Remove Section">🗑️ Remove</button>
+                    </div>
+                    <div id="list-${cat}">
+                        ${items.map((exp, i) => `
+                            <div class="purchase-row">
+                                <input type="text" value="${exp.name}" onchange="editExp('${cat}',${i}, 'name', this.value)" placeholder="Item">
+                                <input type="number" value="${exp.amt}" onchange="editExp('${cat}',${i}, 'amt', this.value)" placeholder="0.00">
+                                <button onclick="deleteExp('${cat}',${i})" style="background:none; border:none; color:#ff4444; cursor:pointer">✕</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn-add" onclick="addPurchase('${cat}')">+ ADD TO ${cat.toUpperCase()}</button>
+                    <div class="total-box">Section Total: $<span id="total-${cat}">0.00</span></div>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+        container.innerHTML = html;
         updateCalculations();
     }
 
-    function renderExpenses() {
-        document.getElementById('expenseSections').innerHTML = categories.map(cat => `
-            <div class="card">
-                <h3 style="margin:0; font-size: 1rem;">${cat}</h3>
-                <div id="list-${cat}">
-                    ${db[currentMonth].expenses[cat].map((exp, i) => `
-                        <div class="purchase-row">
-                            <input type="text" value="${exp.name}" onchange="editExp('${cat}', ${i}, 'name', this.value)" placeholder="Item">
-                            <input type="number" value="${exp.amt}" onchange="editExp('${cat}', ${i}, 'amt', this.value)" placeholder="0.00">
-                            <button onclick="deleteExp('${cat}', ${i})" style="background:none; border:none; color:#ff4444; cursor:pointer">✕</button>
-                        </div>
-                    `).join('')}
-                </div>
-                <button class="btn-add" onclick="addPurchase('${cat}')">+ ADD TO ${cat.toUpperCase()}</button>
-                <div class="total-box">Section Total: $<span id="total-${cat}">0.00</span></div>
-            </div>
-        `).join('');
-    }
+    function addIncome() {
+        const input = document.getElementById('incomeInput');
+        const val = parseFloat(input.value);
+        if (isNaN(val) || val <= 0) return;
 
-    function updateCalculations() {
-        const m = db[currentMonth];
-        m.pc1 = parseFloat(document.getElementById('pc1').value) || 0;
-        m.pc2 = parseFloat(document.getElementById('pc2').value) || 0;
-        m.otherInc = parseFloat(document.getElementById('otherInc').value) || 0;
+        const mData = db.years[db.currentYear][db.currentMonth];
+        mData.balance += val;
+        mData.incomeLog.push(val);
+        input.value = '';
         
-        const totalInc = m.pc1 + m.pc2 + m.otherInc;
-        document.getElementById('totalIncome').innerText = totalInc.toFixed(2);
-
-        let totalOut = 0;
-        categories.forEach(cat => {
-            const sectionTotal = m.expenses[cat].reduce((sum, item) => sum + (parseFloat(item.amt) || 0), 0);
-            document.getElementById(`total-${cat}`).innerText = sectionTotal.toFixed(2);
-            totalOut += sectionTotal;
-        });
-
-        document.getElementById('sumInc').innerText = totalInc.toFixed(2);
-        document.getElementById('sumOut').innerText = totalOut.toFixed(2);
+        document.getElementById('incomeCount').innerText = mData.incomeLog.length;
+        updateFooterTotals();
         saveToLocal();
     }
 
     function addPurchase(cat) {
-        db[currentMonth].expenses[cat].push({name: '', amt: ''});
-        renderExpenses();
+        db.years[db.currentYear][db.currentMonth].expenses[cat].push({name: '', amt: ''});
+        renderMonthSubContent();
     }
 
     function editExp(cat, i, field, val) {
-        db[currentMonth].expenses[cat][i][field] = val;
+        db.years[db.currentYear][db.currentMonth].expenses[cat][i][field] = val;
         updateCalculations();
     }
 
     function deleteExp(cat, i) {
-        db[currentMonth].expenses[cat].splice(i, 1);
-        renderExpenses();
-        updateCalculations();
+        db.years[db.currentYear][db.currentMonth].expenses[cat].splice(i, 1);
+        renderMonthSubContent();
+    }
+
+    function promptAddCategory() {
+        const catName = prompt("Enter new expense section name:");
+        if (!catName || !catName.trim()) return;
+        const cleanName = catName.trim();
+        const mData = db.years[db.currentYear][db.currentMonth];
+        if (mData.categories.includes(cleanName)) {
+            alert("Section already exists!");
+            return;
+        }
+        mData.categories.push(cleanName);
+        if (!mData.expenses[cleanName]) mData.expenses[cleanName] = [];
+        renderMonthSubContent();
+    }
+
+    function removeCategory(cat) {
+        if (confirm(`Are you sure you want to remove the "${cat}" section?`)) {
+            const mData = db.years[db.currentYear][db.currentMonth];
+            mData.categories = mData.categories.filter(c => c !== cat);
+            delete mData.expenses[cat];
+            renderMonthSubContent();
+        }
+    }
+
+    function updateCalculations() {
+        const mData = db.years[db.currentYear][db.currentMonth];
+        let totalOut = 0;
+        mData.categories.forEach(cat => {
+            const items = mData.expenses[cat] || [];
+            const sectionTotal = items.reduce((sum, item) => sum + (parseFloat(item.amt) || 0), 0);
+            const totalEl = document.getElementById(`total-${cat}`);
+            if (totalEl) totalEl.innerText = sectionTotal.toFixed(2);
+            totalOut += sectionTotal;
+        });
+        updateFooterTotals();
+        saveToLocal();
+    }
+
+    function updateFooterTotals() {
+        const yr = db.currentYear;
+        const mIdx = db.currentMonth;
+        
+        let totalBal = 0;
+        let totalInc = 0;
+        let totalOut = 0;
+
+        if (mIdx === 12) {
+            // Aggregate whole year
+            for (let i = 0; i < 12; i++) {
+                if (db.years[yr][i]) {
+                    totalBal += db.years[yr][i].balance || 0;
+                    totalInc += (db.years[yr][i].incomeLog || []).reduce((a, b) => a + b, 0);
+                    db.years[yr][i].categories.forEach(cat => {
+                        totalOut += (db.years[yr][i].expenses[cat] || []).reduce((sum, item) => sum + (parseFloat(item.amt) || 0), 0);
+                    });
+                }
+            }
+        } else {
+            const mData = db.years[yr][mIdx];
+            if (mData) {
+                totalBal = mData.balance || 0;
+                totalInc = (mData.incomeLog || []).reduce((a, b) => a + b, 0);
+                mData.categories.forEach(cat => {
+                    totalOut += (mData.expenses[cat] || []).reduce((sum, item) => sum + (parseFloat(item.amt) || 0), 0);
+                });
+            }
+        }
+
+        document.getElementById('sumBal').innerText = totalBal.toFixed(2);
+        document.getElementById('sumInc').innerText = totalInc.toFixed(2);
+        document.getElementById('sumOut').innerText = totalOut.toFixed(2);
+    }
+
+    function calculateMonthCategoryTotals(yr, mIdx) {
+        const mData = db.years[yr][mIdx];
+        const totals = {};
+        if (!mData) return totals;
+        mData.categories.forEach(cat => {
+            totals[cat] = (mData.expenses[cat] || []).reduce((sum, item) => sum + (parseFloat(item.amt) || 0), 0);
+        });
+        return totals;
+    }
+
+    function calculateYearCategoryTotals(yr) {
+        const totals = {};
+        for (let i = 0; i < 12; i++) {
+            const mData = db.years[yr][i];
+            if (mData) {
+                mData.categories.forEach(cat => {
+                    const catSum = (mData.expenses[cat] || []).reduce((sum, item) => sum + (parseFloat(item.amt) || 0), 0);
+                    totals[cat] = (totals[cat] || 0) + catSum;
+                });
+            }
+        }
+        return totals;
+    }
+
+    function renderPieChartHTML(catTotals, title) {
+        const entries = Object.entries(catTotals).filter(([_, val]) => val > 0);
+        const grandTotal = entries.reduce((acc, [_, val]) => acc + val, 0);
+
+        if (grandTotal === 0) {
+            return `
+                <div class="card chart-container">
+                    <h3>${title}</h3>
+                    <p style="color: #aaa; margin-top: 20px;">No expense data recorded yet.</p>
+                </div>
+            `;
+        }
+
+        // Build SVG Pie Chart
+        let cumulativePercent = 0;
+        let svgSlices = '';
+        let legendHtml = '';
+
+        entries.forEach(([cat, val], idx) => {
+            const percent = (val / grandTotal) * 100;
+            const color = chartColors[idx % chartColors.length];
+            
+            // SVG conic gradient approximation / slices using dasharray or simple circles
+            // Using standard SVG donut/pie slices or simpler representation
+            svgSlices += `<circle cx="50" cy="50" r="40" fill="transparent" stroke="${color}" stroke-width="20" stroke-dasharray="${percent * 2.512} 251.2" stroke-dashoffset="${-cumulativePercent * 2.512}" />`;
+            
+            cumulativePercent += percent;
+
+            legendHtml += `
+                <div class="legend-item">
+                    <div class="legend-color" style="background: ${color};"></div>
+                    <span>${cat}: $${val.toFixed(2)} (${percent.toFixed(1)}%)</span>
+                </div>
+            `;
+        });
+
+        return `
+            <div class="card chart-container">
+                <h3 style="margin-top:0">${title}</h3>
+                <div style="position: relative; width: 180px; height: 180px; margin: 10px 0;">
+                    <svg viewBox="0 0 100 100" style="transform: rotate(-90deg); width: 100%; height: 100%;">
+                        ${svgSlices}
+                    </svg>
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; font-size: 0.8em; color: #aaa;">
+                        Total<br><strong>$${grandTotal.toFixed(2)}</strong>
+                    </div>
+                </div>
+                <div class="pie-legend">
+                    ${legendHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderYearlyChart(yr) {
+        const totals = calculateYearCategoryTotals(yr);
+        return renderPieChartHTML(totals, `Yearly Expense Distribution (${yr})`);
     }
 
     function saveToLocal() { localStorage.setItem('budgetUpData', JSON.stringify(db)); }
@@ -211,7 +494,10 @@
         input.type = 'file';
         input.onchange = e => {
             const reader = new FileReader();
-            reader.onload = ev => { db = JSON.parse(ev.target.result); loadMonth(currentMonth); };
+            reader.onload = ev => { 
+                db = JSON.parse(ev.target.result); 
+                init();
+            };
             reader.readAsText(e.target.files[0]);
         };
         input.click();
